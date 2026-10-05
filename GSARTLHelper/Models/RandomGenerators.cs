@@ -1,7 +1,11 @@
-﻿namespace GSARTLHelper.Models
+﻿using System.Globalization;
+
+namespace GSARTLHelper.Models
 {
     public class RandomGenerators
     {
+        private static TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+
         public static string GetRandomHexColor()
         {
             Random random = new Random();
@@ -17,7 +21,9 @@
         public static SarGroup GetRandomSarGroup ()
         {
             List<SarGroup> groups = SarGroupExtensions.GetSarGroups();
-            int index = GetRandomInt(0, groups.Count - 1);
+            int max = groups.Count - 1;
+            max = 6;
+            int index = GetRandomInt(0, max);
             return groups[index];
         }
         public static int GetRandomInt(int min, int max)
@@ -67,7 +73,7 @@
             get
             {
                 int i = random.Next(LastNames.Length);
-                return LastNames[i];
+                return textInfo.ToTitleCase(LastNames[i].ToLower()); ;
             }
         }
 

@@ -1,4 +1,7 @@
-﻿namespace GSARTLHelper.Models
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+
+namespace GSARTLHelper.Models
 {
     public class Participant
     {
@@ -10,14 +13,19 @@
         private Guid _Id = Guid.Empty;
         private string _FirstName = string.Empty;
         private string _LastName = string.Empty;
-        private Guid _SarGroupId = Guid.Empty;
+        private Guid? _SarGroupId = null;
         private ParticipantType _Type = ParticipantType.Student;
 
         public Guid Id { get => _Id; set => _Id = value; }
+        [Required(AllowEmptyStrings =false)]
+        [DisplayName("First Name")]
         public string FirstName { get => _FirstName; set => _FirstName = value; }
+        [Required(AllowEmptyStrings = false)]
+        [DisplayName("Last Name")]
         public string LastName { get => _LastName; set => _LastName = value; }
         public string FullName => $"{FirstName} {LastName}";
-        public Guid SarGroupId { get => _SarGroupId; set => _SarGroupId = value; }
+        [Required]
+        public Guid? SarGroupId { get => _SarGroupId; set => _SarGroupId = value; }
         public string? SarGroupName => SarGroupExtensions.GetGroupName(SarGroupId);
 
         public ParticipantType Type { get => _Type; set => _Type = value; }

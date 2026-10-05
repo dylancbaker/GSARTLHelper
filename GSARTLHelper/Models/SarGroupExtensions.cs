@@ -7,8 +7,9 @@
         {
             return GetSarGroups().FirstOrDefault(g => g.Id == Id);
         }
-        public static string? GetGroupName(Guid Id)
+        public static string? GetGroupName(Guid? Id)
         {
+            if(Id == null) { return null; }
             return GetSarGroups().FirstOrDefault(g => g.Id == Id)?.Name;
         }
         public static List<SarGroup> GetSarGroups()
