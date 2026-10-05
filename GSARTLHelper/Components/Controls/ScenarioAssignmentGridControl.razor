@@ -4,20 +4,34 @@
 <table class="table table-bordered">
     <thead>
         <tr>
-            <th>#</th>
+            <td></td>
+            @for (int x = 1; x <= AllInstructors.Count; x++)
+            {
+                <th>
+                    Area @x
+                </th>
+            }
+        </tr>
+        <tr>
+            <th>Scenario</th>
 
             @foreach(Participant inst in AllParticipants.Where(o=>o.Type == ParticipantType.Instructor))
             {
-                <td>@inst.FullName</td>
+                <th>@inst.FullName<br />
+                    <em>@inst.SarGroupName</em>
+                </th>
             }
         </tr>
-        @foreach (Scenario scenario in AllScenarios)
+        @foreach (Scenario scenario in AllScenarios.Where(o=>AllScenarioAssignments.Any(a => a.ScenarioId == o.Id)))
         {
             <tr>
-                <td>@scenario.Name</td>
+                <th scope="row">@scenario.Name</th>
                @foreach(Participant inst in AllParticipants.Where(o=>o.Type == ParticipantType.Instructor))
                 {
-                    <td>@GetScenarioParticipantName(scenario.Id, inst.Id)?.FullName</td>
+                    <td>
+                        @GetScenarioParticipant(scenario.Id, inst.Id)?.FullName<br />
+                        <em>@GetScenarioParticipant(scenario.Id, inst.Id)?.SarGroupName</em>
+                    </td>
                 }
                 
             </tr>
@@ -31,10 +45,11 @@
     public List<ScenarioAssignment> AllScenarioAssignments { get; set; } = new List<ScenarioAssignment>();
     [Parameter]
     public List<Participant> AllParticipants { get; set; } = new List<Participant>();
+    List<Participant> AllInstructors { get => AllParticipants.Where(o => o.Type == ParticipantType.Instructor).ToList(); }
     [Parameter]
     public List<Scenario> AllScenarios { get; set; } = new List<Scenario>();
 
-    private Participant? GetScenarioParticipantName (Guid ScenarioId, Guid InstructorId)
+    private Participant? GetScenarioParticipant (Guid ScenarioId, Guid InstructorId)
     {
         ScenarioAssignment? assignment = AllScenarioAssignments.FirstOrDefault(o => o.InstructorId == InstructorId && o.ScenarioId == ScenarioId);
         if (assignment == null)
@@ -43,6 +58,8 @@
         }
         return AllParticipants.FirstOrDefault(o=>o.Id == assignment.StudentId);
     }
+
+    
     
 
 }
