@@ -1,30 +1,132 @@
 ﻿@page "/"
 @using GSARTLHelper.Components.Controls
 @using GSARTLHelper.Models
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>GSAR TL Scenario Helper</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>GSAR TL Scenario Helper</h1>
 
-Welcome to your new app.
+<h2>Configure Instructors</h2>
+<InstructorListControl AllParticipants="@AllInstructors" />
 
+<EditForm Model="instructorToEdit" FormName="instructor" OnValidSubmit="HandleSaveInstructor">
+<div class="card m-3">
+<div class="card-header">Add Instructor</div>
+<div class="card-body">
+            <DataAnnotationsValidator></DataAnnotationsValidator>
+            <InstructorEntryControl Participant="@instructorToEdit" />
+            <ValidationSummary />
+
+</div>
+<div class="card-footer">
+        <button class="btn btn-success" type="submit">Save</button>
+</div>
+</div>
+</EditForm>
+
+<h3>Student Count</h3>
+<InputNumber class="form-control mb-3" @bind-Value="StudentCount" />
+
+
+<button class="btn btn-primary btn-lg mb-3" @onclick="AssignStudentsToScenarios">Assign Students to Scenarios</button>
+
+
+@if (SearchScenarioAssignments.Count > 0 && string.IsNullOrEmpty(SearchValidationMessage)   )
+{
+    <h2>Search Scenario Assignments</h2>
+    <ScenarioAssignmentGridControl AllScenarioAssignments="@SearchScenarioAssignments" AllParticipants="@AllParticipants" AllScenarios="@AllScenarios" />
+}
+else if (!string.IsNullOrEmpty(SearchValidationMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @SearchValidationMessage
+    </div>
+}
+
+
+
+@if (RescueScenarioAssignments.Count > 0 && string.IsNullOrEmpty(RescueValidationMessage))
+{
+    <h2>Rescue Scenario Assignments</h2>
+    <ScenarioAssignmentGridControl AllScenarioAssignments="@RescueScenarioAssignments" AllParticipants="@AllParticipants" AllScenarios="@AllScenarios" />
+}
+else if (!string.IsNullOrEmpty(RescueValidationMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @RescueValidationMessage
+    </div>
+}
+
+<hr />
 
 <StudentListControl AllParticipants="@AllStudents" />
-<InstructorListControl AllParticipants="@AllInstructors" />
+
 
 @code {
     List<Participant> AllParticipants = new List<Participant>();
     List<Participant> AllStudents {get { return AllParticipants.Where(o => o.Type == ParticipantType.Student).ToList(); }}
     List<Participant> AllInstructors { get { return AllParticipants.Where(o => o.Type == ParticipantType.Instructor).ToList(); } }
+    List<ScenarioAssignment> SearchScenarioAssignments = new List<ScenarioAssignment>();
+    List<ScenarioAssignment> RescueScenarioAssignments = new List<ScenarioAssignment>();
+    List<Scenario> AllScenarios = ScenarioExtensions.GetAllScenarios();
 
+    Participant instructorToEdit = new Participant();
+    int StudentCount = 10;
+    string? SearchValidationMessage = null;
+    string? RescueValidationMessage = null;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        AllParticipants = ParticipantExtensions.GetRandomStudents(40);
-        AllParticipants.AddRange(ParticipantExtensions.GetRandomInstructors(9));
-        AllParticipants = AllParticipants.OrderBy(o => o.SarGroupName).ThenBy(o => o.FirstName).ThenBy(o => o.LastName).ToList();
     }
 
-    
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            
+        }
+        base.OnAfterRender(firstRender);
+
+    }
+
+
+    private void HandleSaveInstructor()
+    {
+        instructorToEdit.Type = ParticipantType.Instructor;
+        AllParticipants = AllParticipants.Where(o => o.Id != instructorToEdit.Id).ToList();
+        AllParticipants.Add(instructorToEdit);
+        AllParticipants = AllParticipants.OrderBy(o => o.SarGroupName).ThenBy(o => o.FirstName).ThenBy(o => o.LastName).ToList();
+        instructorToEdit = new Participant();
+        StateHasChanged();
+    }
+
+    private void AssignStudentsToScenarios()
+    {
+        if (AllStudents.Count <= 0)
+        {
+            AllParticipants.AddRange(ParticipantExtensions.GetRandomStudents(StudentCount));
+        }
+        
+
+
+        try
+        {
+            SearchScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignments(AllScenarios.Where(o => o.Type == ScenarioType.Search).ToList(), AllParticipants);
+            SearchValidationMessage = null;
+        } catch (Exception ex)
+        {
+            SearchValidationMessage = $"Error creating search scenario assignments: {ex.Message}";
+        }
+        try
+        {
+            RescueScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignments(AllScenarios.Where(o => o.Type == ScenarioType.Rescue).ToList(), AllParticipants);
+            RescueValidationMessage = null; 
+        } catch (Exception ex)
+        {
+            RescueValidationMessage = $"Error creating rescue scenario assignments: {ex.Message}";
+        }
+
+    }
 }
