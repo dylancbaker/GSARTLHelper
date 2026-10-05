@@ -1,0 +1,48 @@
+﻿@using GSARTLHelper.Models
+<h3>Scenario Assignment Grid</h3>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+
+            @foreach(Participant inst in AllParticipants.Where(o=>o.Type == ParticipantType.Instructor))
+            {
+                <td>@inst.FullName</td>
+            }
+        </tr>
+        @foreach (Scenario scenario in AllScenarios)
+        {
+            <tr>
+                <td>@scenario.Name</td>
+               @foreach(Participant inst in AllParticipants.Where(o=>o.Type == ParticipantType.Instructor))
+                {
+                    <td>@GetScenarioParticipantName(scenario.Id, inst.Id)?.FullName</td>
+                }
+                
+            </tr>
+        }
+    </thead>
+</table>
+
+
+@code {
+    [Parameter]
+    public List<ScenarioAssignment> AllScenarioAssignments { get; set; } = new List<ScenarioAssignment>();
+    [Parameter]
+    public List<Participant> AllParticipants { get; set; } = new List<Participant>();
+    [Parameter]
+    public List<Scenario> AllScenarios { get; set; } = new List<Scenario>();
+
+    private Participant? GetScenarioParticipantName (Guid ScenarioId, Guid InstructorId)
+    {
+        ScenarioAssignment? assignment = AllScenarioAssignments.FirstOrDefault(o => o.InstructorId == InstructorId && o.ScenarioId == ScenarioId);
+        if (assignment == null)
+        {
+            return null;
+        }
+        return AllParticipants.FirstOrDefault(o=>o.Id == assignment.StudentId);
+    }
+    
+
+}
