@@ -1,0 +1,33 @@
+﻿@using GSARTLHelper.Models
+
+<div class="input-group mb-3">
+    <span class="input-group-text" id="basic-addon1">First</span>
+    <InputText class="form-control" @bind-Value="participant.FirstName" />
+    <span class="input-group-text" id="basic-addon1">Last</span>
+    <InputText class="form-control" @bind-Value="participant.LastName" />
+    <span class="input-group-text" id="basic-addon1">SAR Group</span>
+    <InputSelect @bind-Value="participant.SarGroupId" @bind-Value:after="OnSelectionChanged" class="form-select">
+        <option value=""></option>
+        @if (sarGroups != null)
+        {
+            @foreach (var group in sarGroups)
+            {
+                <option value="@group.Id">@group.Name</option>
+            }
+        }
+    </InputSelect>
+
+</div>
+
+@code {
+
+    [Parameter] 
+    public Participant participant { get; set; } = new Participant();
+    List<SarGroup> sarGroups = SarGroupExtensions.GetSarGroups();
+
+    private async Task OnSelectionChanged()
+    {
+
+    }
+
+}
