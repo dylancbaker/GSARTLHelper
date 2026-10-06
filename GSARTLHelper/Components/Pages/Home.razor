@@ -121,7 +121,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
         }
         try
         {
-            RescueScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignments(AllScenarios.Where(o => o.Type == ScenarioType.Rescue).ToList(), AllParticipants);
+            RescueScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignmentsSecondRound(AllScenarios.Where(o => o.Type == ScenarioType.Rescue).ToList(), AllParticipants, SearchScenarioAssignments);
             RescueValidationMessage = null; 
         } catch (Exception ex)
         {

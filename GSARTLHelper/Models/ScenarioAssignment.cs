@@ -15,17 +15,68 @@
 
     public static class ScenarioAssignmentExtensions
     {
+        private  const int InstructorSimilarityScore = 4;
+        public static bool SharesGroupWithInstructor(this Participant student, List<Participant> instructors)
+        {
+            return instructors.Any(instructor => student.SarGroupId == instructor.SarGroupId);
+        }
+
+        public static double GetSimilarityScore(this ScenarioAssignment scenarioAssignment, List<ScenarioAssignment> assignments, List<ScenarioAssignment> pastAssignments)
+        {
+            double similarityScore = 0;
+
+            //do we have the same instructor?
+            if(pastAssignments.Any(o => o.InstructorId == scenarioAssignment.InstructorId))
+            {
+                similarityScore += InstructorSimilarityScore;
+            }
+
+            //do we have any of the same teammates?
+            List<Guid> studentsWithThisInstructor = assignments.Where(o => o.InstructorId == scenarioAssignment.InstructorId && o.StudentId != scenarioAssignment.StudentId).Select(o=>o.StudentId).ToList();
+            Guid PastInstructorId = pastAssignments.FirstOrDefault(o=>o.StudentId == scenarioAssignment.StudentId)?.InstructorId ?? Guid.Empty;
+            List<Guid> studentsWithPastInstructor = pastAssignments.Where(o => o.InstructorId == PastInstructorId && o.StudentId != scenarioAssignment.StudentId).Select(o => o.StudentId).ToList();
+
+            similarityScore += studentsWithThisInstructor.Intersect(studentsWithPastInstructor).Count();
+            
+            return similarityScore;
+        }
+
+        public static List<ScenarioAssignment> CreateAssignmentsSecondRound(List<Scenario> scenarios, List<Participant> participants, List<ScenarioAssignment> pastAssignments)
+        {
+            // Implementation for creating assignments in the second round
+            List<ScenarioAssignment> assignments = new List<ScenarioAssignment>();
+            
+            double highestSimilarityScore = 99;
+            double maxSimilarityScore = InstructorSimilarityScore + participants.Where(o=>o.Type == ParticipantType.Instructor).Count();
+            int maxTries = 5;
+            int tries = 0;
+            while(tries < maxTries && highestSimilarityScore > maxSimilarityScore)
+            {
+                assignments = CreateAssignments(scenarios, participants);
+                highestSimilarityScore = assignments.Max(o => o.GetSimilarityScore(assignments, pastAssignments));
+                tries++;
+            }
+                
+            // Your logic here
+            return assignments;
+        }
+
         public static List< ScenarioAssignment> CreateAssignments(List<Scenario> scenarios, List<Participant> participants)
         {
             List<ScenarioAssignment> assignments = new List<ScenarioAssignment>();
-            List<Participant> students = participants.Where(o=>o.Type == ParticipantType.Student)
-                .OrderBy(o=> Guid.NewGuid()).ToList();
+            
             List<Participant> instructors = participants.Where(o => o.Type == ParticipantType.Instructor)
                 .OrderBy(o => o.SarGroupName).ThenBy(o => o.FirstName).ThenBy(o => o.LastName).ToList();
+            //By sorting the students to put those who share a group with an instructor to the top, the system should prioritize getting them assigned
+            //and reduce the chances of assignment conflicts.
+            List<Participant> students = participants.Where(o=>o.Type == ParticipantType.Student)
+                .OrderBy(o=> !o.SharesGroupWithInstructor(instructors))
+                .ThenBy(o=> Guid.NewGuid()).ToList();
+          
 
             if(instructors.Count == 0)
             {
-                throw new Exception("There are no instructors available for assignment.");
+                throw new Exception("There are no instructors available for assignment."); 
             }
             if(students.Count == 0)
             {
@@ -33,7 +84,7 @@
             }
 
             //Ideally, each instructor will have one student assigned per scenario
-            //We need to make sure instructors don't get assigned students from the same SarGroup as them
+            //We need to make sure instructors don't get assigned students from the same SarGroup as themas
 
             double studentsPerInstructor = students.Count / instructors.Count;
             if(studentsPerInstructor > scenarios.Count)
