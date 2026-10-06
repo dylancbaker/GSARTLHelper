@@ -22,7 +22,7 @@ namespace GSARTLHelper.Models
         {
             List<SarGroup> groups = SarGroupExtensions.GetSarGroups();
             int max = groups.Count - 1;
-            max = 6;
+            max = 8;
             int index = GetRandomInt(0, max);
             return groups[index];
         }

@@ -7,7 +7,7 @@
 
 <h1>GSAR TL Scenario Helper</h1>
 
-<h2>Configure Instructors</h2>
+<h2 class="mt-4">1. Configure Instructors</h2>
 <InstructorListControl AllParticipants="@AllInstructors" />
 
 <EditForm Model="instructorToEdit" FormName="instructor" OnValidSubmit="HandleSaveInstructor">
@@ -25,42 +25,52 @@
 </div>
 </EditForm>
 
-<h3>Student Count</h3>
-<InputNumber class="form-control mb-3" @bind-Value="StudentCount" />
+<hr />
 
+<h2 class="mt-4">2. Configure Students</h2>
+<div class="row">
+    <div class="col-md-8">
+        <h3>Upload student list</h3>
+        
+    </div>
+    <div class="col-md">
 
+        <h3>Create random sample students</h3>
+        <InputNumber class="form-control mb-3" @bind-Value="StudentCount" />
+        <button @onclick="CreateRandomStudents" class="btn btn-dark">Create</button>
+    </div>
+</div>
+<StudentListControl AllParticipants="@AllStudents" />
+
+<hr />
+
+<h2 class="mt-4">3. Create Scenario Assignments</h2>
 <button class="btn btn-primary btn-lg mb-3" @onclick="AssignStudentsToScenarios">Assign Students to Scenarios</button>
 
 
 @if (SearchScenarioAssignments.Count > 0 && string.IsNullOrEmpty(SearchValidationMessage)   )
 {
-    <h2>Search Scenario Assignments</h2>
+    <h3 class="mt-4">Search Scenario Assignments</h3>
     <ScenarioAssignmentGridControl AllScenarioAssignments="@SearchScenarioAssignments" AllParticipants="@AllParticipants" AllScenarios="@AllScenarios" />
 }
 else if (!string.IsNullOrEmpty(SearchValidationMessage))
 {
-    <div class="alert alert-danger" role="alert">
-        @SearchValidationMessage
-    </div>
+    <div class="alert alert-danger" role="alert">        @SearchValidationMessage    </div>
 }
 
 
 
 @if (RescueScenarioAssignments.Count > 0 && string.IsNullOrEmpty(RescueValidationMessage))
 {
-    <h2>Rescue Scenario Assignments</h2>
-    <ScenarioAssignmentGridControl AllScenarioAssignments="@RescueScenarioAssignments" AllParticipants="@AllParticipants" AllScenarios="@AllScenarios" />
+    <h3 class="mt-4">Rescue Scenario Assignments</h3>
+    <ScenarioAssignmentGridControl AllScenarioAssignments="@RescueScenarioAssignments" AllParticipants="@AllParticipants" AllScenarios="@AllScenarios" PastScenarioAssignments="@SearchScenarioAssignments" />
 }
 else if (!string.IsNullOrEmpty(RescueValidationMessage))
 {
-    <div class="alert alert-danger" role="alert">
-        @RescueValidationMessage
-    </div>
+    <div class="alert alert-danger" role="alert">        @RescueValidationMessage    </div>
 }
 
-<hr />
 
-<StudentListControl AllParticipants="@AllStudents" />
 
 
 @code {
@@ -85,7 +95,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
     {
         if (firstRender)
         {
-            
+
         }
         base.OnAfterRender(firstRender);
 
@@ -104,13 +114,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
 
     private void AssignStudentsToScenarios()
     {
-        if (AllStudents.Count <= 0)
-        {
-            AllParticipants.AddRange(ParticipantExtensions.GetRandomStudents(StudentCount));
-        }
-        
-
-
+       
         try
         {
             SearchScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignments(AllScenarios.Where(o => o.Type == ScenarioType.Search).ToList(), AllParticipants);
@@ -127,6 +131,12 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
         {
             RescueValidationMessage = $"Error creating rescue scenario assignments: {ex.Message}";
         }
+
+    }
+
+    private void CreateRandomStudents()
+    {
+        AllParticipants.AddRange(ParticipantExtensions.GetRandomStudents(StudentCount));
 
     }
 }

@@ -1,6 +1,4 @@
 ﻿@using GSARTLHelper.Models
-<h3>Scenario Assignment Grid</h3>
-
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -49,6 +47,9 @@
     [Parameter]
     public List<Scenario> AllScenarios { get; set; } = new List<Scenario>();
 
+    [Parameter]
+    public List<ScenarioAssignment>? PastScenarioAssignments { get; set; } = null;
+
     private Participant? GetScenarioParticipant (Guid ScenarioId, Guid InstructorId)
     {
         ScenarioAssignment? assignment = AllScenarioAssignments.FirstOrDefault(o => o.InstructorId == InstructorId && o.ScenarioId == ScenarioId);
@@ -59,6 +60,15 @@
         return AllParticipants.FirstOrDefault(o=>o.Id == assignment.StudentId);
     }
 
+    private double GetSimilarityScore(ScenarioAssignment? assignment)
+    {
+        if (PastScenarioAssignments == null || assignment == null)
+        {
+            return 0;
+        }
+        double score = assignment.GetSimilarityScore(AllScenarioAssignments, PastScenarioAssignments);
+        return score;
+    }
     
     
 

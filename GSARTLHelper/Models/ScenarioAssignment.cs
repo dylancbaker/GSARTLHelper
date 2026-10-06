@@ -15,7 +15,7 @@
 
     public static class ScenarioAssignmentExtensions
     {
-        private  const int InstructorSimilarityScore = 4;
+        private  const int InstructorSimilarityScore = 8;
         public static bool SharesGroupWithInstructor(this Participant student, List<Participant> instructors)
         {
             return instructors.Any(instructor => student.SarGroupId == instructor.SarGroupId);
@@ -26,7 +26,7 @@
             double similarityScore = 0;
 
             //do we have the same instructor?
-            if(pastAssignments.Any(o => o.InstructorId == scenarioAssignment.InstructorId))
+            if(pastAssignments.Any(o => o.InstructorId == scenarioAssignment.InstructorId && o.StudentId == scenarioAssignment.StudentId))
             {
                 similarityScore += InstructorSimilarityScore;
             }
@@ -44,21 +44,32 @@
         public static List<ScenarioAssignment> CreateAssignmentsSecondRound(List<Scenario> scenarios, List<Participant> participants, List<ScenarioAssignment> pastAssignments)
         {
             // Implementation for creating assignments in the second round
-            List<ScenarioAssignment> assignments = new List<ScenarioAssignment>();
             
-            double highestSimilarityScore = 99;
-            double maxSimilarityScore = InstructorSimilarityScore + participants.Where(o=>o.Type == ParticipantType.Instructor).Count();
-            int maxTries = 5;
+            
+            double lowestSimilarityScore = 99;
+
+            List<List<ScenarioAssignment>> AssignmentOptions = new List<List<ScenarioAssignment>>();
+
+            int maxTries = 300;
             int tries = 0;
-            while(tries < maxTries && highestSimilarityScore > maxSimilarityScore)
+            while(tries < maxTries)
             {
-                assignments = CreateAssignments(scenarios, participants);
-                highestSimilarityScore = assignments.Max(o => o.GetSimilarityScore(assignments, pastAssignments));
+                List<ScenarioAssignment> assignments = CreateAssignments(scenarios, participants);
+
+                double similarityScore = assignments.Max(o => o.GetSimilarityScore(assignments, pastAssignments));
+                if(similarityScore < lowestSimilarityScore)
+                {
+                    lowestSimilarityScore = similarityScore;
+                    AssignmentOptions.Add(assignments);
+                }
                 tries++;
             }
                 
-            // Your logic here
-            return assignments;
+            if(AssignmentOptions == null || AssignmentOptions.Count == 0)
+            {
+                throw new Exception("Unable to create assignments with a low enough similarity score.");
+            }
+            return AssignmentOptions.Last();
         }
 
         public static List< ScenarioAssignment> CreateAssignments(List<Scenario> scenarios, List<Participant> participants)
