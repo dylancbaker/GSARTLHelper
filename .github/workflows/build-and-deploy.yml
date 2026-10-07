@@ -110,4 +110,8 @@ jobs:
           envs: SERVICE_NAME
           script: |
             echo "Checking service status..."
-            sudo -n systemctl status "$SERVICE_NAME"
+            if ! sudo -n systemctl status "$SERVICE_NAME"; then
+              echo "Error: The deployed service is not running. Check the systemd status output above." >&2
+              echo "For status=203/EXEC or a missing /usr/bin/dotnet, have a server administrator follow DEPLOYMENT_SETUP.md (Service Fails to Start)." >&2
+              exit 1
+            fi
