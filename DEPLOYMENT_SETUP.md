@@ -45,7 +45,7 @@ Add the following secrets to your GitHub repository:
 
 2. Create these secrets:
 
-   - **DEPLOY_HOST**: `gsartl.greathat.ca`
+   - **DEPLOY_HOST**: Your server's public IP address or a DNS-only SSH hostname (not proxied through Cloudflare)
    - **DEPLOY_USER**: `deploy`
    - **DEPLOY_SSH_KEY**: (paste the entire contents of `github_actions_deploy` - the private key)
    - **DEPLOY_PATH**: `/var/www/vhosts/greathat.ca/gsartl.greathat.ca`
@@ -54,7 +54,7 @@ Add the following secrets to your GitHub repository:
 ### How to add a secret:
 
 1. Click "New repository secret"
-2. Name: `DEPLOY_HOST`, Value: `gsartl.greathat.ca`
+2. Name: `DEPLOY_HOST`, Value: your server's public IP address or DNS-only SSH hostname
 3. Repeat for other secrets
 4. Click "Add secret"
 
@@ -164,7 +164,9 @@ server {
 
 - Verify SSH key is correct
 - Check that `DEPLOY_HOST`, `DEPLOY_USER` secrets are correct
-- Test SSH manually: `ssh -i private_key deploy@gsartl.greathat.ca`
+- For `dial tcp ...:22: i/o timeout`, ensure `DEPLOY_HOST` points directly to the server, not a Cloudflare proxy IP. Standard Cloudflare proxying does not forward SSH on port 22; use the server's public IP or set the SSH hostname's DNS record to **DNS only** (grey cloud).
+- Ensure the server firewall allows inbound SSH on port 22 from the GitHub Actions runner.
+- Test SSH manually against the same host configured in `DEPLOY_HOST`: `ssh -i private_key deploy@<DEPLOY_HOST>`
 
 ### Service Fails to Start
 
