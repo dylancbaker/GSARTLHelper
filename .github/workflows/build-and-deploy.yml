@@ -88,7 +88,7 @@ jobs:
 
             # Extract to deployment directory
             echo "Extracting to deployment directory..."
-            tar -xzf "$ARTIFACT_DIR/gsartl-build.tar.gz" -C "$DEPLOY_PATH"
+            tar --no-overwrite-dir -xzf "$ARTIFACT_DIR/gsartl-build.tar.gz" -C "$DEPLOY_PATH"
 
             # Set proper permissions
             chmod +x "$DEPLOY_PATH/GSARTLHelper"
