@@ -1,13 +1,18 @@
 ﻿@page "/"
+@using System.Text
 @using GSARTLHelper.Components.Controls
 @using GSARTLHelper.Models
 @rendermode InteractiveServer
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 <PageTitle>GSAR TL Scenario Helper</PageTitle>
 
 <h1>GSAR TL Scenario Helper</h1>
 
-<h2 class="mt-4">1. Configure Instructors</h2>
+<div class="alert alert-info" role="alert">
+    <i class="bi bi-exclamation-square-fill"></i> Note, nothing on this page is saved anywhere. When you refresh or leave the page, all data is lost.
+</div>
+
+<h2 class="mt-4"><i class="bi bi-mortarboard"></i> 1. Configure Instructors</h2>
 <InstructorListControl AllParticipants="@AllInstructors" />
 
 <EditForm Model="instructorToEdit" FormName="instructor" OnValidSubmit="HandleSaveInstructor">
@@ -27,7 +32,7 @@
 
 <hr />
 
-<h2 class="mt-4">2. Configure Students</h2>
+<h2 class="mt-4"><i class="bi bi-people"></i> 2. Configure Students</h2>
 <div class="row">
     <div class="col-md-8">
         <h3>Upload student list</h3>
@@ -49,23 +54,35 @@
                 {
                     <ParticipantUploadRowControl uploadRow="@row" />
                 }
+
+                @if(!string.IsNullOrEmpty(ImportValidationMessage))
+                {
+                    <div class="alert alert-danger" role="alert">@ImportValidationMessage</div>
+                }
+
+                <button @onclick="ConvertCSVStudents" class="btn btn-primary">Finalize Import</button>
             </div>
         }
         
 
     </div>
-    <div class="col-md">
+    <div class="col-md d-none">
 
         <h3>Create random sample students (for testing)</h3>
         <InputNumber class="form-control mb-3" @bind-Value="StudentCount" />
         <button @onclick="CreateRandomStudents" class="btn btn-dark">Create</button>
     </div>
 </div>
-<StudentListControl AllParticipants="@AllStudents" />
 
+@if (AllStudents.Count > 0)
+{
+    <div class="mt-3">
+        <StudentListControl AllParticipants="@AllStudents" />
+    </div>
+}
 <hr />
 
-<h2 class="mt-4">3. Create Scenario Assignments</h2>
+<h2 class="mt-4"><i class="bi bi-clipboard2-check"></i> 3. Create Scenario Assignments</h2>
 <button class="btn btn-primary btn-lg mb-3" @onclick="AssignStudentsToScenarios">Assign Students to Scenarios</button>
 
 
@@ -107,6 +124,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
     int StudentCount = 10;
     string? SearchValidationMessage = null;
     string? RescueValidationMessage = null;
+    string? ImportValidationMessage = null;
 
     protected override void OnInitialized()
     {
@@ -170,5 +188,35 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
         var smallFileByteArray = memoryStream.ToArray();
         UploadedStudentRows = ParticipantExtensions.ParseStudentUploadFile(smallFileByteArray);
         StateHasChanged();
+    }
+
+    private void ConvertCSVStudents()
+    {
+        ImportValidationMessage = null;
+        List<Participant> newStudents = new List<Participant>();
+        StringBuilder validationMessage = new StringBuilder();
+        foreach (ParticipantUploadRow row in UploadedStudentRows)
+        {
+            if (row.SarGroupId == Guid.Empty)
+            {
+                validationMessage.AppendLine($"Please select a SAR Group for {row.Name} before finalizing import.<br />");
+            }
+            else
+            {
+                newStudents.Add(ParticipantExtensions.CreateStudentFromUpload(row));
+            }
+        }
+
+        if (validationMessage.Length > 0)
+        {
+            ImportValidationMessage = validationMessage.ToString();
+            return;
+        }
+        
+        AllParticipants.AddRange(newStudents);
+        AllParticipants = AllParticipants.OrderBy(o => o.FirstName).ThenBy(o => o.LastName).ToList();
+        UploadedStudentRows.Clear();
+        StateHasChanged();
+
     }
 }

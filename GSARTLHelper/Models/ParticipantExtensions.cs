@@ -4,7 +4,7 @@
     {
         public static Participant CreateStudentFromUpload(ParticipantUploadRow row)
         {
-            var names = row.Name.Split(',');
+            var names = row.Name.Split(' ');
             var firstName = names.Length > 1 ? names[1].Trim() : string.Empty;
             var lastName = names.Length > 0 ? names[0].Trim() : string.Empty;
             var sarGroup = SarGroupExtensions.GetGroup(row.SarGroupId);
