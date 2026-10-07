@@ -1,0 +1,82 @@
+name: Build and Deploy on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish GSARTLHelper/GSARTLHelper.csproj --configuration Release --output ./publish --no-build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gsartl-build
+          path: ./publish
+          retention-days: 1
+
+      - name: Deploy to Ubuntu server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            echo "Deploying GSARTLHelper..."
+
+            # Create backup of current deployment
+            if [ -d "${{ secrets.DEPLOY_PATH }}" ]; then
+              echo "Backing up current deployment..."
+              sudo cp -r "${{ secrets.DEPLOY_PATH }}" "${{ secrets.DEPLOY_PATH }}.backup-$(date +%s)"
+            fi
+
+            # Create deployment directory if it doesn't exist
+            sudo mkdir -p "${{ secrets.DEPLOY_PATH }}"
+
+            # Download and extract the build artifact
+            echo "Downloading build artifact..."
+            cd /tmp
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gsartl-build.tar.gz
+
+            # Extract to deployment directory
+            echo "Extracting to deployment directory..."
+            sudo tar -xzf gsartl-build.tar.gz -C "${{ secrets.DEPLOY_PATH }}"
+
+            # Set proper permissions
+            sudo chown -R ${{ secrets.DEPLOY_USER }}:${{ secrets.DEPLOY_USER }} "${{ secrets.DEPLOY_PATH }}"
+            sudo chmod +x "${{ secrets.DEPLOY_PATH }}/GSARTLHelper"
+
+            # Restart the service
+            echo "Restarting service..."
+            sudo systemctl restart ${{ secrets.SERVICE_NAME }}
+
+            echo "Deployment complete!"
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "Checking service status..."
+            sudo systemctl status ${{ secrets.SERVICE_NAME }}
