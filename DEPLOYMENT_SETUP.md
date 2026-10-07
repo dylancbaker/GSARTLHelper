@@ -7,7 +7,7 @@ This guide will help you set up GitHub Actions to automatically build and deploy
 Before you start, make sure you have:
 - A GitHub repository with admin access
 - SSH access to your Ubuntu server (`gsartl.greathat.ca`)
-- `deploy` user on your Ubuntu server with sudo privileges
+- `deploy` user with write access to the deployment directory and passwordless sudo for the service commands below
 - systemd service named `gsartl` configured on your server
 
 ## Step 1: Generate SSH Key for GitHub Actions
@@ -113,6 +113,14 @@ sudo chown deploy:deploy /var/www/vhosts/greathat.ca/gsartl.greathat.ca
 sudo chmod 755 /var/www/vhosts/greathat.ca/gsartl.greathat.ca
 ```
 
+If the directory already contains an application installed by root, make its existing files writable by the deploy user as well:
+
+```bash
+sudo chown -R deploy:deploy /var/www/vhosts/greathat.ca/gsartl.greathat.ca
+```
+
+The workflow copies, extracts, and sets file permissions as `deploy`, without sudo. Backups are stored in the deploy user's home directory, so the parent of the deployment directory does not need to be writable.
+
 ### Install .NET Runtime (if not already installed)
 
 ```bash
@@ -176,21 +184,30 @@ server {
 
 ### Artifact Download Fails
 
-- GitHub Release must have the artifact attached
+- The workflow packages the published application as `gsartl-build.tar.gz` and attaches it to the release before deployment. The Actions build artifact alone is not a release asset.
+- Ensure the workflow has `contents: write` permission to upload the release asset.
+- The server downloads the asset without GitHub credentials, so the repository and release must be publicly accessible.
 - Verify the artifact path in the workflow matches your build output
 - Check that the release tag matches the workflow trigger
+
+### Workflow Fails on Sudo Password Prompt
+
+- Complete the deployment directory ownership setup above; file operations must not require sudo.
+- Configure the exact service commands in sudoers, matching `SERVICE_NAME`.
+- Test as the deploy user: `sudo -n systemctl restart gsartl` and `sudo -n systemctl status gsartl`.
+- The workflow uses `sudo -n` to fail immediately if service permissions are missing. Do not grant unrestricted passwordless sudo or add a sudo password to the workflow.
 
 ### Backup/Rollback
 
 Backups are automatically created in:
 ```
-/var/www/vhosts/greathat.ca/gsartl.greathat.ca.backup-<timestamp>
+~/gsartl-backup-<random suffix>/application
 ```
 
 To manually restore:
 ```bash
 sudo rm -rf /var/www/vhosts/greathat.ca/gsartl.greathat.ca
-sudo cp -r /var/www/vhosts/greathat.ca/gsartl.greathat.ca.backup-<timestamp> /var/www/vhosts/greathat.ca/gsartl.greathat.ca
+sudo cp -r ~/gsartl-backup-<random suffix>/application /var/www/vhosts/greathat.ca/gsartl.greathat.ca
 sudo systemctl restart gsartl
 ```
 

@@ -7,6 +7,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -33,50 +35,67 @@ jobs:
           path: ./publish
           retention-days: 1
 
+      - name: Attach deployment archive to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          tar -czf "$RUNNER_TEMP/gsartl-build.tar.gz" -C ./publish .
+          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/gsartl-build.tar.gz" --clobber
+
       - name: Deploy to Ubuntu server
         uses: appleboy/ssh-action@master
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+          RELEASE_DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/gsartl-build.tar.gz
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_PATH,SERVICE_NAME,RELEASE_DOWNLOAD_URL
           script: |
             set -e
             echo "Deploying GSARTLHelper..."
 
             # Create backup of current deployment
-            if [ -d "${{ secrets.DEPLOY_PATH }}" ]; then
+            if [ -d "$DEPLOY_PATH" ]; then
               echo "Backing up current deployment..."
-              sudo cp -r "${{ secrets.DEPLOY_PATH }}" "${{ secrets.DEPLOY_PATH }}.backup-$(date +%s)"
+              BACKUP_DIR=$(mktemp -d "$HOME/gsartl-backup-XXXXXXXX")
+              cp -r "$DEPLOY_PATH" "$BACKUP_DIR/application"
             fi
 
             # Create deployment directory if it doesn't exist
-            sudo mkdir -p "${{ secrets.DEPLOY_PATH }}"
+            mkdir -p "$DEPLOY_PATH"
 
             # Download and extract the build artifact
             echo "Downloading build artifact..."
-            cd /tmp
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gsartl-build.tar.gz
+            ARTIFACT_DIR=$(mktemp -d)
+            trap 'rm -rf "$ARTIFACT_DIR"' EXIT
+            wget -O "$ARTIFACT_DIR/gsartl-build.tar.gz" "$RELEASE_DOWNLOAD_URL"
 
             # Extract to deployment directory
             echo "Extracting to deployment directory..."
-            sudo tar -xzf gsartl-build.tar.gz -C "${{ secrets.DEPLOY_PATH }}"
+            tar -xzf "$ARTIFACT_DIR/gsartl-build.tar.gz" -C "$DEPLOY_PATH"
 
             # Set proper permissions
-            sudo chown -R ${{ secrets.DEPLOY_USER }}:${{ secrets.DEPLOY_USER }} "${{ secrets.DEPLOY_PATH }}"
-            sudo chmod +x "${{ secrets.DEPLOY_PATH }}/GSARTLHelper"
+            chmod +x "$DEPLOY_PATH/GSARTLHelper"
 
             # Restart the service
             echo "Restarting service..."
-            sudo systemctl restart ${{ secrets.SERVICE_NAME }}
+            sudo -n systemctl restart "$SERVICE_NAME"
 
             echo "Deployment complete!"
 
       - name: Verify deployment
         uses: appleboy/ssh-action@master
+        env:
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: SERVICE_NAME
           script: |
             echo "Checking service status..."
-            sudo systemctl status ${{ secrets.SERVICE_NAME }}
+            sudo -n systemctl status "$SERVICE_NAME"
