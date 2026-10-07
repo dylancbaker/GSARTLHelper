@@ -1,4 +1,6 @@
-﻿namespace GSARTLHelper.Models
+﻿using System.Xml.Linq;
+
+namespace GSARTLHelper.Models
 {
     public static class ParticipantExtensions
     {
@@ -48,17 +50,20 @@
                 string[] columns = lines[i].Split(',');
                 if (columns.Length >= 7)
                 {
-                    rows.Add(new ParticipantUploadRow
+                    if (!string.IsNullOrEmpty(columns[2].Trim()))
                     {
-                        Number = columns[0].Trim(),
-                        ParsedSarGroupName = columns[1].Trim(),
-                        SarGroupId = SarGroupExtensions.GetBestGuessFromPartialName(columns[1].Trim())?.Id ?? Guid.Empty,
-                        Name = columns[2].Trim(),
-                        StudentId = columns[3].Trim(),
-                        Email = columns[4].Trim(),
-                        Phone = columns[5].Trim(),
-                        Status = columns.Length > 6 ? columns[6].Trim() : string.Empty
-                    });
+                        rows.Add(new ParticipantUploadRow
+                        {
+                            Number = columns[0].Trim(),
+                            ParsedSarGroupName = columns[1].Trim(),
+                            SarGroupId = SarGroupExtensions.GetBestGuessFromPartialName(columns[1].Trim())?.Id ?? Guid.Empty,
+                            Name = columns[2].Trim(),
+                            StudentId = columns[3].Trim(),
+                            Email = columns[4].Trim(),
+                            Phone = columns[5].Trim(),
+                            Status = columns.Length > 6 ? columns[6].Trim() : string.Empty
+                        });
+                    }
                 }
             }
 
