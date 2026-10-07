@@ -30,20 +30,4 @@ namespace GSARTLHelper.Models
 
         public ParticipantType Type { get => _Type; set => _Type = value; }
     }
-
-    public static class ParticipantExtensions
-    {
-        public static List<Participant> GetRandomParticipants(int qty, ParticipantType type)
-        {
-            var list = new List<Participant>();
-            for (int x = 0; x < qty; x++)
-            {
-                list.Add(new Participant { FirstName = RandomGenerators.FirstName, LastName = RandomGenerators.LastName, Type = type, SarGroupId = RandomGenerators.GetRandomSarGroup().Id });
-            }
-            return list;
-        }
-
-        public static List<Participant> GetRandomStudents(int qty)        {            return GetRandomParticipants(qty, ParticipantType.Student);        }
-        public static List<Participant> GetRandomInstructors(int qty) { return GetRandomParticipants(qty, ParticipantType.Instructor); }
-    }
 }

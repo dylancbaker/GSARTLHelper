@@ -1,0 +1,37 @@
+﻿@using GSARTLHelper.Models
+
+<div class="row">
+    <div class="col">@uploadRow.Name</div>
+    <div class="col">@uploadRow.Email</div>
+    <div class="col">@AddQuotes(uploadRow.ParsedSarGroupName)</div>
+    <div class="col">
+        <InputSelect @bind-Value="uploadRow.SarGroupId" @bind-Value:after="OnSelectionChanged" class="form-select">
+            <option value=""></option>
+            @if (sarGroups != null)
+            {
+                @foreach (var group in sarGroups)
+                {
+                    <option value="@group.Id">@group.Name</option>
+                }
+            }
+        </InputSelect>
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public ParticipantUploadRow uploadRow { get; set; } = new ParticipantUploadRow();
+    List<SarGroup> sarGroups = SarGroupExtensions.GetSarGroups();
+
+    private string AddQuotes(string text)
+    {
+        return "\"" + text + "\"";
+    }
+
+    private void OnSelectionChanged()
+    {
+        
+    }
+}
+

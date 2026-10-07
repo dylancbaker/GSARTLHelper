@@ -2,6 +2,19 @@
 {
     public static class SarGroupExtensions
     {
+        public static SarGroup? GetBestGuessFromPartialName(string partialName)
+        {
+            if (string.IsNullOrWhiteSpace(partialName))
+            {
+                return null;
+            }
+            var groups = GetSarGroups();
+            var bestMatch = groups
+                .Where(g => g.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(g => g.Name.Length)
+                .FirstOrDefault();
+            return bestMatch;
+        }
 
         public static SarGroup? GetGroup(Guid Id)
         {

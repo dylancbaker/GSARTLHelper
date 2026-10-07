@@ -32,10 +32,31 @@
     <div class="col-md-8">
         <h3>Upload student list</h3>
         
+        <InputFile OnChange="HandleUploadStudentList"  />
+
+        @if (UploadedStudentRows.Count > 0)
+        {
+            <div class="mt-3">
+                <h4>Uploaded Students</h4>
+                <div class="row">
+                    <div class="col"><h5>Name</h5></div>
+                    <div class="col"><h5>Email</h5></div>
+                    <div class="col"><h5>Sar Group from File</h5></div>
+                    <div class="col"><h5>Select SAR Group</h5></div>
+                </div>
+
+                @foreach (var row in UploadedStudentRows)
+                {
+                    <ParticipantUploadRowControl uploadRow="@row" />
+                }
+            </div>
+        }
+        
+
     </div>
     <div class="col-md">
 
-        <h3>Create random sample students</h3>
+        <h3>Create random sample students (for testing)</h3>
         <InputNumber class="form-control mb-3" @bind-Value="StudentCount" />
         <button @onclick="CreateRandomStudents" class="btn btn-dark">Create</button>
     </div>
@@ -77,6 +98,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
     List<Participant> AllParticipants = new List<Participant>();
     List<Participant> AllStudents {get { return AllParticipants.Where(o => o.Type == ParticipantType.Student).ToList(); }}
     List<Participant> AllInstructors { get { return AllParticipants.Where(o => o.Type == ParticipantType.Instructor).ToList(); } }
+    List<ParticipantUploadRow> UploadedStudentRows = new List<ParticipantUploadRow>();
     List<ScenarioAssignment> SearchScenarioAssignments = new List<ScenarioAssignment>();
     List<ScenarioAssignment> RescueScenarioAssignments = new List<ScenarioAssignment>();
     List<Scenario> AllScenarios = ScenarioExtensions.GetAllScenarios();
@@ -114,7 +136,7 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
 
     private void AssignStudentsToScenarios()
     {
-       
+
         try
         {
             SearchScenarioAssignments = ScenarioAssignmentExtensions.CreateAssignments(AllScenarios.Where(o => o.Type == ScenarioType.Search).ToList(), AllParticipants);
@@ -138,5 +160,15 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
     {
         AllParticipants.AddRange(ParticipantExtensions.GetRandomStudents(StudentCount));
 
+    }
+
+    private async void HandleUploadStudentList(InputFileChangeEventArgs e)
+    {
+        var browserFile = e.File;
+        using var memoryStream = new MemoryStream();
+        await browserFile.OpenReadStream(e.File.Size).CopyToAsync(memoryStream);
+        var smallFileByteArray = memoryStream.ToArray();
+        UploadedStudentRows = ParticipantExtensions.ParseStudentUploadFile(smallFileByteArray);
+        StateHasChanged();
     }
 }
