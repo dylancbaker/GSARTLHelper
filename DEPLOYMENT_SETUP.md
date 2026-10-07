@@ -182,6 +182,20 @@ server {
 - Verify deployment directory has correct permissions
 - Ensure .NET runtime is installed on the server
 
+### Deployment Fails with `mkdir: Permission denied`
+
+The build can succeed while deployment fails because `DEPLOY_USER` cannot create the configured `DEPLOY_PATH` under a root-owned parent such as `/var/www/vhosts/greathat.ca`. The workflow cannot provision that parent with its service-only sudo permissions.
+
+Before retrying, have a server administrator run the **Create Deployment Directory** commands above on the same server configured in `DEPLOY_HOST`. Use the actual `DEPLOY_PATH` and `DEPLOY_USER` secret values; if application files already exist, apply the recursive ownership command to that application directory only. Do not change ownership of the shared `/var/www/vhosts` tree or grant unrestricted passwordless sudo.
+
+Verify access as the deployment account (replace `deploy` and the path if your secrets differ):
+
+```bash
+sudo -u deploy sh -c 'test -d "$1" && test -w "$1" && test -x "$1"' sh /var/www/vhosts/greathat.ca/gsartl.greathat.ca
+```
+
+This command must exit successfully. The workflow checks directory access before backing up or downloading files. If access is still denied, check execute/search permissions on each parent directory as well. After repairing server access, retry the workflow; retrying alone does not fix filesystem permissions.
+
 ### Artifact Download Fails
 
 - The workflow packages the published application as `gsartl-build.tar.gz` and attaches it to the release before deployment. The Actions build artifact alone is not a release asset.

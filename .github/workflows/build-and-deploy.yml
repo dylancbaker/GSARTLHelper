@@ -66,15 +66,19 @@ jobs:
             set -e
             echo "Deploying GSARTLHelper..."
 
+            # Verify directory access before backing up or downloading
+            if [ ! -d "$DEPLOY_PATH" ] || [ ! -w "$DEPLOY_PATH" ] || [ ! -x "$DEPLOY_PATH" ]; then
+              echo "Error: DEPLOY_PATH must be a directory writable and searchable by the DEPLOY_USER SSH account." >&2
+              echo "Have a server administrator create it and assign ownership to DEPLOY_USER (see DEPLOYMENT_SETUP.md, Create Deployment Directory)." >&2
+              exit 1
+            fi
+
             # Create backup of current deployment
             if [ -d "$DEPLOY_PATH" ]; then
               echo "Backing up current deployment..."
               BACKUP_DIR=$(mktemp -d "$HOME/gsartl-backup-XXXXXXXX")
               cp -r "$DEPLOY_PATH" "$BACKUP_DIR/application"
             fi
-
-            # Create deployment directory if it doesn't exist
-            mkdir -p "$DEPLOY_PATH"
 
             # Download and extract the build artifact
             echo "Downloading build artifact..."
