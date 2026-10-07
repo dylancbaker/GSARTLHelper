@@ -35,8 +35,15 @@
 <h2 class="mt-4"><i class="bi bi-people"></i> 2. Configure Students</h2>
 <div class="row">
     <div class="col-md-8">
-        <h3>Upload student list</h3>
-        
+
+        <div class="row">
+            <div class="col"> <h3>Upload student list</h3></div>
+            <div class="col-md"><div class="alert alert-secondary">Here is a sample file: <a href="/lib/students-sample.csv"  download>Download Sample File</a></div></div>
+        </div>
+
+
+
+
         <InputFile OnChange="HandleUploadStudentList"  />
 
         @if (UploadedStudentRows.Count > 0)
@@ -57,7 +64,7 @@
 
                 @if(!string.IsNullOrEmpty(ImportValidationMessage))
                 {
-                    <div class="alert alert-danger" role="alert">@ImportValidationMessage</div>
+                    <div class="alert alert-danger" role="alert">@((MarkupString)ImportValidationMessage)</div>
                 }
 
                 <button @onclick="ConvertCSVStudents" class="btn btn-primary">Finalize Import</button>
@@ -197,9 +204,13 @@ else if (!string.IsNullOrEmpty(RescueValidationMessage))
         StringBuilder validationMessage = new StringBuilder();
         foreach (ParticipantUploadRow row in UploadedStudentRows)
         {
-            if (row.SarGroupId == Guid.Empty)
+            if (string.IsNullOrEmpty(row.Name))
             {
-                validationMessage.AppendLine($"Please select a SAR Group for {row.Name} before finalizing import.<br />");
+                //skip empty rows
+            }
+            else if (row.SarGroupId == Guid.Empty)
+            {
+                validationMessage.AppendLine($"Please select a SAR Group for <strong>{row.Name}</strong> before finalizing import.<br />");
             }
             else
             {
