@@ -3,6 +3,12 @@ name: Build and Deploy on Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to build and deploy'
+        required: true
+        type: string
 
 jobs:
   build-and-deploy:
@@ -13,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.event.release.tag_name }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -38,7 +46,7 @@ jobs:
       - name: Attach deployment archive to release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
         run: |
           tar -czf "$RUNNER_TEMP/gsartl-build.tar.gz" -C ./publish .
           gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/gsartl-build.tar.gz" --clobber
@@ -48,7 +56,7 @@ jobs:
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
-          RELEASE_DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/gsartl-build.tar.gz
+          RELEASE_DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ inputs.release_tag || github.event.release.tag_name }}/gsartl-build.tar.gz
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}

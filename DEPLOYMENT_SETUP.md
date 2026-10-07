@@ -197,6 +197,19 @@ server {
 - Test as the deploy user: `sudo -n systemctl restart gsartl` and `sudo -n systemctl status gsartl`.
 - The workflow uses `sudo -n` to fail immediately if service permissions are missing. Do not grant unrestricted passwordless sudo or add a sudo password to the workflow.
 
+### Redeploy an Existing Release After a Workflow Fix
+
+Re-running a failed release run uses the original workflow revision, not a subsequently merged fix. For example, the failed `v1.0.2` deployment used sudo for file operations and stopped because SSH could not provide a password prompt.
+
+After merging the corrected workflow into the default branch and completing the server ownership and sudoers setup above:
+
+1. Open **Actions > Build and Deploy on Release > Run workflow**.
+2. Select the default branch so the run uses the corrected workflow.
+3. Enter the existing release tag (for example, `v1.0.2`) in **release_tag**.
+4. Run the workflow and check the deployment and service verification logs.
+
+The workflow checks out the selected release tag, rebuilds its application, replaces that release's `gsartl-build.tar.gz` asset, and deploys it using the corrected deployment steps. Newly published releases still deploy automatically.
+
 ### Backup/Rollback
 
 Backups are automatically created in:
