@@ -36,7 +36,7 @@ jobs:
       - name: Deploy to Ubuntu server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
+          host: ssh.gsartl.greathat.ca
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
@@ -74,7 +74,7 @@ jobs:
       - name: Verify deployment
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
+          host: ssh.gsartl.greathat.ca
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
