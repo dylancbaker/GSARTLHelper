@@ -196,6 +196,14 @@ sudo -u deploy sh -c 'test -d "$1" && test -w "$1" && test -x "$1"' sh /var/www/
 
 This command must exit successfully. The workflow checks directory access before backing up or downloading files. If access is still denied, check execute/search permissions on each parent directory as well. After repairing server access, retry the workflow; retrying alone does not fix filesystem permissions.
 
+### Extraction Fails with `tar: .: Cannot utime` or `Cannot change mode`
+
+The release archive includes a `.` entry for the publish directory. By default, tar tries to apply that entry's timestamp and permissions to `DEPLOY_PATH`. A deployment account with write/search access but no ownership of that directory cannot change its metadata.
+
+The workflow uses `tar --no-overwrite-dir` to preserve existing server directory metadata while updating application files. This also preserves metadata of existing subdirectories; it does not bypass file write permissions or require additional sudo privileges. If extraction still reports permission denied for application files, follow the ownership setup above.
+
+After merging the fix, use **Run workflow** on the default branch with the existing release tag as described below. Re-running the old failed run still uses its original extraction command.
+
 ### Artifact Download Fails
 
 - The workflow packages the published application as `gsartl-build.tar.gz` and attaches it to the release before deployment. The Actions build artifact alone is not a release asset.
