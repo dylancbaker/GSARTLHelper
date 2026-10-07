@@ -121,6 +121,8 @@ sudo chown -R deploy:deploy /var/www/vhosts/greathat.ca/gsartl.greathat.ca
 
 The workflow copies, extracts, and sets file permissions as `deploy`, without sudo. Backups are stored in the deploy user's home directory, so the parent of the deployment directory does not need to be writable.
 
+Archive extraction uses `--no-overwrite-dir` so existing directory metadata is not overwritten with archive metadata. This avoids `tar: .: Cannot utime` and `Cannot change mode` failures when the deployment account can write to a directory but does not own it. Application files must still be writable by the deployment account; newly created files and directories are extracted normally.
+
 ### Install .NET Runtime (if not already installed)
 
 ```bash
