@@ -86,7 +86,7 @@ jobs:
             trap 'rm -rf "$ARTIFACT_DIR"' EXIT
             wget -O "$ARTIFACT_DIR/gsartl-build.tar.gz" "$RELEASE_DOWNLOAD_URL"
 
-            # Extract to deployment directory
+            # Extract files without changing metadata of existing server directories
             echo "Extracting to deployment directory..."
             tar --no-overwrite-dir -xzf "$ARTIFACT_DIR/gsartl-build.tar.gz" -C "$DEPLOY_PATH"
 
