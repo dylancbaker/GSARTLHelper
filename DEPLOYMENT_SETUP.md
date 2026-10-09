@@ -9,6 +9,7 @@ Before you start, make sure you have:
 - SSH access to your Ubuntu server (`gsartl.greathat.ca`)
 - `deploy` user with write access to the deployment directory and passwordless sudo for the service commands below
 - systemd service named `gsartl` configured on your server
+- ASP.NET Core 10.0 runtime installed on the server, with an executable `/usr/bin/dotnet` (see Step 4)
 
 ## Step 1: Generate SSH Key for GitHub Actions
 
@@ -73,7 +74,7 @@ After=network.target
 Type=simple
 User=deploy
 WorkingDirectory=/var/www/vhosts/greathat.ca/gsartl.greathat.ca
-ExecStart=/var/www/vhosts/greathat.ca/gsartl.greathat.ca/GSARTLHelper
+ExecStart=/usr/bin/dotnet /var/www/vhosts/greathat.ca/gsartl.greathat.ca/GSARTLHelper.dll
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -83,7 +84,7 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Then enable the service:
+After installing the runtime below, enable the service:
 
 ```bash
 sudo systemctl daemon-reload
@@ -123,18 +124,28 @@ The workflow copies, extracts, and sets file permissions as `deploy`, without su
 
 Archive extraction uses `--no-overwrite-dir` so existing directory metadata is not overwritten with archive metadata. This avoids `tar: .: Cannot utime` and `Cannot change mode` failures when the deployment account can write to a directory but does not own it. Application files must still be writable by the deployment account; newly created files and directories are extracted normally.
 
-### Install .NET Runtime (if not already installed)
+### Install ASP.NET Core Runtime (if not already installed)
+
+The release is framework-dependent and targets `net10.0`. The server needs both `Microsoft.NETCore.App` and `Microsoft.AspNetCore.App` 10.0; installing .NET on the Actions runner does not install it on the server.
+
+Run these commands as a server administrator. Check the exact executable used by the systemd service, not just the `dotnet` found on your interactive shell's PATH:
 
 ```bash
-# Check if .NET is installed
-dotnet --version
+# Check the service's runtime
+/usr/bin/dotnet --list-runtimes
 
-# If not, install it:
+# If the ASP.NET Core 10.0 runtime is missing, install it:
 wget https://dot.net/v1/dotnet-install.sh
-chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 10.0 --install-dir /usr/local/dotnet
-ln -s /usr/local/dotnet/dotnet /usr/local/bin/dotnet
+sudo bash ./dotnet-install.sh --runtime aspnetcore --channel 10.0 --install-dir /usr/local/dotnet
+
+# If /usr/bin/dotnet does not exist, expose the installed host at the service's path:
+sudo ln -s /usr/local/dotnet/dotnet /usr/bin/dotnet
+
+# Verify both 10.0 runtimes are visible to the service account
+sudo -u deploy /usr/bin/dotnet --list-runtimes
 ```
+
+Do not replace an existing `/usr/bin/dotnet` from a package-managed installation. If it exists but lacks the required runtimes, install the ASP.NET Core 10.0 runtime using that installation's package manager, or set the service's `ExecStart` to `/usr/local/dotnet/dotnet` and the application's absolute DLL path. Installing only the base .NET runtime is insufficient for this web application.
 
 ## Step 5: Configure Your Application
 
@@ -182,7 +193,19 @@ server {
 
 - Check service logs: `sudo journalctl -u gsartl -n 50`
 - Verify deployment directory has correct permissions
-- Ensure .NET runtime is installed on the server
+- Ensure the ASP.NET Core 10.0 runtime is installed on the server as described in Step 4.
+
+If status reports `203/EXEC` and `Failed at step EXEC spawning /usr/bin/dotnet: No such file or directory`, the build and extraction may have succeeded, but systemd cannot execute its configured runtime host. A successful `systemctl restart` does not guarantee that the application stays running.
+
+Have a server administrator install the runtime and provide `/usr/bin/dotnet` as described above, or correct the service's `ExecStart` to the absolute path of an existing host with both required 10.0 runtimes. Inspect the actual unit with `sudo systemctl cat gsartl`; the running server configuration may differ from the example in this guide. After fixing it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart gsartl
+sudo systemctl status gsartl
+```
+
+Confirm the service remains `active (running)` and check its journal before redeploying. The workflow cannot install system runtimes or edit service units with its service-only sudo permissions. Do not grant it unrestricted sudo; retrying alone cannot fix a missing executable.
 
 ### Deployment Fails with `mkdir: Permission denied`
 
